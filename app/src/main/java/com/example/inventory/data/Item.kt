@@ -16,7 +16,9 @@
 
 package com.example.inventory.data
 
+import android.util.Log
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 
 /**
@@ -28,5 +30,19 @@ data class Item(
     val id: Int = 0,
     val name: String,
     val price: Double,
-    val quantity: Int
-)
+    val quantity: Int,
+    val category : String,
+    val cart : Boolean = false
+
+){
+    val totalPrice: Double
+        get() = price * quantity
+
+    @get:Ignore
+    val grandTotal : Double
+        get() {
+            val computedPrice = price * quantity
+            Log.d("Item", "Calculating totalPrice: $price * $quantity = $computedPrice")
+            return computedPrice
+        }
+}

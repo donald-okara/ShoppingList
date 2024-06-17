@@ -204,7 +204,7 @@ fun ItemDetails(
                 )
             )
             ItemDetailsRow(
-                labelResID = R.string.quantity_in_stock,
+                labelResID = R.string.quantity_to_buy,
                 itemDetail = item.quantity.toString(),
                 modifier = Modifier.padding(
                     horizontal = dimensionResource(
@@ -213,6 +213,18 @@ fun ItemDetails(
                     )
                 )
             )
+
+            ItemDetailsRow(
+                labelResID = R.string.total_price,
+                itemDetail = item.totalPrice.toString(),
+                modifier = Modifier.padding(
+                    horizontal = dimensionResource(
+                        id = R.dimen
+                            .padding_medium
+                    )
+                )
+            )
+
             ItemDetailsRow(
                 labelResID = R.string.price,
                 itemDetail = item.formatedPrice(),

@@ -17,6 +17,9 @@
     <string name="app_name">Shopping List</string>
     <string name="attention">Attention</string>
     <string name="back_button">Back</string>
+    <string name="total_item_price">$%1$.2f</string>
+    <string name="total_price">Total Price</string>
+    <string name="grand_total">Grand Total: $%1$.2f</string>
     <string name="delete">Delete</string>
     <string name="delete_question">Are you sure you want to delete?</string>
     <string name="no_item_description">Oops!\nNo items in the list.\nTap + to add.</string>
@@ -28,11 +31,13 @@
     <string name="item_price_req">Item Price*</string>
     <string name="no">No</string>
     <string name="price">Price</string>
-    <string name="quantity_in_stock">Quantity in stock</string>
-    <string name="in_stock">%d in stock</string>
-    <string name="quantity_req">Quantity in Stock*</string>
+    <string name="quantity_to_buy">Quantity to buy</string>
+    <string name="quantity">%d</string>
+    <string name="quantity_req">Quantity *</string>
     <string name="save_action">Save</string>
     <string name="sell">Sell</string>
     <string name="yes">Yes</string>
     <string name="required_fields">*required fields</string>
+    <string name="checkout">Checkout items</string>
+    <string name="category">Category</string>
 </resources>

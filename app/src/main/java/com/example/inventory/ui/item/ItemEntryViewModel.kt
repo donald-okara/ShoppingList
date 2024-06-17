@@ -28,7 +28,6 @@ import java.text.NumberFormat
  * ViewModel to validate and insert items in the Room database.
  */
 class ItemEntryViewModel(private val itemsRepository: ItemsRepository) : ViewModel() {
-
     /**
      * Holds current item ui state
      */
@@ -73,6 +72,8 @@ data class ItemDetails(
     val name: String = "",
     val price: String = "",
     val quantity: String = "",
+    val category : String = "",
+    val cart : Boolean = false
 )
 
 /**
@@ -84,7 +85,9 @@ fun ItemDetails.toItem(): Item = Item(
     id = id,
     name = name,
     price = price.toDoubleOrNull() ?: 0.0,
-    quantity = quantity.toIntOrNull() ?: 0
+    quantity = quantity.toIntOrNull() ?: 0,
+    category = category,
+    cart = cart
 )
 
 fun Item.formatedPrice(): String {
@@ -106,5 +109,7 @@ fun Item.toItemDetails(): ItemDetails = ItemDetails(
     id = id,
     name = name,
     price = price.toString(),
-    quantity = quantity.toString()
+    quantity = quantity.toString(),
+    category = category,
+    cart = cart
 )

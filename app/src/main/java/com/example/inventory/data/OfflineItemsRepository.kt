@@ -17,6 +17,7 @@
 package com.example.inventory.data
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class OfflineItemsRepository(private val itemDao: ItemDao) : ItemsRepository {
     override fun getAllItemsStream(): Flow<List<Item>> = itemDao.getAllItems()
@@ -28,4 +29,10 @@ class OfflineItemsRepository(private val itemDao: ItemDao) : ItemsRepository {
     override suspend fun deleteItem(item: Item) = itemDao.delete(item)
 
     override suspend fun updateItem(item: Item) = itemDao.update(item)
+
+    override fun getTotalPrice(): Flow<Double> {
+        return itemDao.getAllItems().map { itemList ->
+            itemList.sumOf { it.grandTotal }
+        }
+    }
 }
