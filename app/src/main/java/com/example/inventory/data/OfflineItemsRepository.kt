@@ -28,6 +28,14 @@ class OfflineItemsRepository(private val itemDao: ItemDao) : ItemsRepository {
 
     override suspend fun deleteItem(item: Item) = itemDao.delete(item)
 
+    override suspend fun deleteItems(items: List<Item>) {
+        itemDao.deleteItems(items)
+    }
+
+    override suspend fun deleteAllItems() {
+        itemDao.deleteAllItems()
+    }
+
     override suspend fun updateItem(item: Item) = itemDao.update(item)
 
     override fun getTotalPrice(): Flow<Double> {
@@ -35,4 +43,9 @@ class OfflineItemsRepository(private val itemDao: ItemDao) : ItemsRepository {
             itemList.sumOf { it.grandTotal }
         }
     }
+
+    override suspend fun updateItems(items: List<Item>) {
+        itemDao.updateItems(items)
+    }
+
 }

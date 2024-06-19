@@ -42,9 +42,15 @@ interface ItemsRepository {
      */
     suspend fun deleteItem(item: Item)
 
+    suspend fun deleteItems(items: List<Item>)
+
+    suspend fun deleteAllItems()
     /**
      * Update item in the data source
+     *
      */
+    suspend fun updateItems(items: List<Item>)
+
     suspend fun updateItem(item: Item)
 
     fun getTotalPrice(): Flow<Double>

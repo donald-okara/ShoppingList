@@ -265,7 +265,7 @@ private fun ItemDetailsRow(
 }
 
 @Composable
-private fun DeleteConfirmationDialog(
+fun DeleteConfirmationDialog(
     onDeleteConfirm: () -> Unit, onDeleteCancel: () -> Unit, modifier: Modifier = Modifier
 ) {
     AlertDialog(onDismissRequest = { /* Do nothing */ },

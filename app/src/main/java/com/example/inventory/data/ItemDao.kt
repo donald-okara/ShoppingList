@@ -44,7 +44,16 @@ interface ItemDao {
     @Update
     suspend fun update(item: Item)
 
+    @Update
+    suspend fun updateItems(items: List<Item>)  // Update method for multiple items
+
     @Delete
     suspend fun delete(item: Item)
+
+    @Delete
+    suspend fun deleteItems(items: List<Item>)
+
+    @Query("DELETE FROM items")
+    suspend fun deleteAllItems()
 
 }

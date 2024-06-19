@@ -31,7 +31,7 @@ data class Item(
     val name: String,
     val price: Double,
     val quantity: Int,
-    val category : String,
+    val category : String = "General",
     val cart : Boolean = false
 
 ){

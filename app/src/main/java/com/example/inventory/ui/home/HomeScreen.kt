@@ -41,6 +41,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FolderDelete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.BottomSheetScaffold
@@ -65,8 +66,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
@@ -80,6 +84,7 @@ import com.example.inventory.InventoryTopAppBar
 import com.example.inventory.R
 import com.example.inventory.data.Item
 import com.example.inventory.ui.AppViewModelProvider
+import com.example.inventory.ui.item.DeleteConfirmationDialog
 import com.example.inventory.ui.navigation.NavigationDestination
 import com.example.inventory.ui.theme.InventoryTheme
 import kotlinx.coroutines.launch
@@ -97,6 +102,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
+    val totalItemsPrice by viewModel.totalItemsPrice.collectAsState()
     val homeUiState by viewModel.homeUiState.collectAsState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val selectedItems = remember { mutableStateOf(setOf<Int>()) }
@@ -107,24 +113,15 @@ fun HomeScreen(
     }
     val scope = rememberCoroutineScope()
     val scaffoldState = rememberBottomSheetScaffoldState()
+    var deleteConfirmationRequired by rememberSaveable { mutableStateOf(false) }
+    var deleteConfirmationForAllRequired by rememberSaveable { mutableStateOf(false) }
 
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         sheetPeekHeight = 128.dp,
         sheetContent = {
-            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.fillMaxWidth().height(128.dp), contentAlignment = Alignment.Center) {
-                    Text("Swipe up to expand sheet")
-                }
-                Text("Sheet content")
-                Button(
-                    modifier = Modifier.padding(bottom = 64.dp),
-                    onClick = { scope.launch { scaffoldState.bottomSheetState.partialExpand() } }
-                ) {
-                    Text("Click to collapse sheet")
-                }
-            }
+            BottomSheetContent(totalItemsPrice = totalItemsPrice)
         },
         modifier = modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection)
@@ -133,6 +130,8 @@ fun HomeScreen(
                     if (selectedItems.value.isNotEmpty()) {
                         selectedItems.value = emptySet()
                     }
+                    deleteConfirmationForAllRequired = false
+                    deleteConfirmationRequired = false
                 },
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
@@ -166,13 +165,36 @@ fun HomeScreen(
                     .align(Alignment.BottomCenter)
                     .padding(bottom = dimensionResource(R.dimen.padding_large))
             ) {
-
+                //FAB segment
                 if (selectedItems.value.isEmpty()) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         FloatingActionButton(
+                        onClick = {
+                            deleteConfirmationForAllRequired = true
+                        },
+                        shape = MaterialTheme.shapes.medium,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(dimensionResource(id = R.dimen.padding_large))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FolderDelete,
+                            contentDescription = "Cear list"
+                        )
+                    }
+                        if (deleteConfirmationForAllRequired) {
+                            DeleteConfirmationDialog(
+                                onDeleteConfirm = {
+                                    deleteConfirmationForAllRequired = false
+                                    viewModel.deleteAllItems()                               },
+                                onDeleteCancel = { deleteConfirmationForAllRequired = false },
+                                modifier = Modifier.padding(dimensionResource(id = R.dimen.padding_medium))
+                            )
+                        }
+                        ExtendedFloatingActionButton(
                             onClick = navigateToItemEntry,
                             shape = MaterialTheme.shapes.medium,
                             modifier = Modifier.padding(dimensionResource(id = R.dimen.padding_large))
@@ -181,32 +203,20 @@ fun HomeScreen(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = stringResource(R.string.item_entry_title)
                             )
+                            Text(text = "Add Item")
                         }
+
                     }
-                }
-                else {
+                } else {
                     // Add your action buttons here
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        FloatingActionButton(
-                            onClick = {
-                                // Handle other action
-                            },
-                            shape = MaterialTheme.shapes.medium,
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            modifier = Modifier.padding(dimensionResource(id = R.dimen.padding_large))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "More"
-                            )
-                        }
 
                         FloatingActionButton(
                             onClick = {
-                                // Handle delete action
+                                deleteConfirmationRequired = true
                             },
                             shape = MaterialTheme.shapes.medium,
                             containerColor = MaterialTheme.colorScheme.surface,
@@ -218,10 +228,27 @@ fun HomeScreen(
                                 contentDescription = "Delete"
                             )
                         }
+                        if (deleteConfirmationRequired) {
+                            DeleteConfirmationDialog(
+                                onDeleteConfirm = {
+                                    deleteConfirmationRequired = false
+                                    viewModel.deleteSelectedItems(selectedItems.value)
+                                    selectedItems.value = emptySet()                                },
+                                onDeleteCancel = { deleteConfirmationRequired = false },
+                                modifier = Modifier.padding(dimensionResource(id = R.dimen.padding_medium))
+                            )
+                        }
+
 
                         ExtendedFloatingActionButton(
                             onClick = {
                                 // Handle other action
+                                selectedItems.value.forEach {
+                                    itemId ->
+                                    viewModel.addToCart(itemId)
+
+                                }
+                                selectedItems.value = emptySet()
                             },
                             shape = MaterialTheme.shapes.medium,
                             modifier = Modifier.padding(dimensionResource(id = R.dimen.padding_large))
@@ -236,37 +263,44 @@ fun HomeScreen(
                     }
                 }
             }
-            }
         }
     }
+}
 
 
 @Composable
-fun BottomSheetContent(selectedItems: Set<Int>) {
+fun BottomSheetContent(
+    totalItemsPrice : Double,
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
+
+) {
+    Log.d("BottomSheet", "Total items price in UI: $totalItemsPrice")
+
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        Text(
-            text = "Selected Items",
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        selectedItems.forEach { itemId ->
-            Text(text = "Item ID: $itemId", style = MaterialTheme.typography.bodySmall)
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = {
-                // Handle delete action
-            },
-            modifier = Modifier.align(Alignment.End)
-        ) {
-            Text(text = "Delete")
-        }
+       Row{
+           Column {
+               Text(
+                   text = "Total Price: ",
+                   style = MaterialTheme.typography.bodyLarge,
+               )
+               Text(
+                   text = "$totalItemsPrice",
+                   style = MaterialTheme.typography.bodyLarge,
+               )
+
+           }
+
+
+       }
     }
 }
+
 @Composable
 private fun HomeBody(
     itemList: List<Item>,
@@ -274,14 +308,10 @@ private fun HomeBody(
     selectedItems: MutableState<Set<Int>>,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
-    viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     Surface(
         modifier = modifier,
     ) {
-        val totalItemsPrice by viewModel.totalItemsPrice.collectAsState()
-        Log.d("HomeBody", "Total items price in UI: $totalItemsPrice")
-
         if (itemList.isEmpty()) {
             Text(
                 text = stringResource(R.string.no_item_description),
@@ -291,7 +321,6 @@ private fun HomeBody(
             )
         } else {
             InventoryList(
-                totalItemsPrice = totalItemsPrice,
                 itemList = itemList,
                 onItemClick = { onItemClick(it.id) },
                 selectedItems = selectedItems,
@@ -305,7 +334,6 @@ private fun HomeBody(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun InventoryList(
-    totalItemsPrice: Double,
     itemList: List<Item>,
     onItemClick: (Item) -> Unit,
     selectedItems: MutableState<Set<Int>>,
@@ -332,11 +360,6 @@ private fun InventoryList(
 
     Column(modifier = modifier) {
         // Display total price at the top
-        Text(
-            text = "Grand Total: $totalItemsPrice",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(contentPadding)
-        )
         Spacer(modifier = Modifier.padding(16.dp))
 
         // Display items by category
@@ -422,8 +445,7 @@ private fun InventoryItem(
             modifier = Modifier
                 .padding(dimensionResource(id = R.dimen.padding_large))
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0f)) // Set transparent background
-            ,
+                .background(Color.Transparent), // Set transparent background
         ) {
             Text(
                 text = item.name,
