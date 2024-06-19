@@ -30,7 +30,7 @@
     <string name="item_name_req">Item Name*</string>
     <string name="item_price_req">Item Price*</string>
     <string name="no">No</string>
-    <string name="price">Price</string>
+    <string name="unit_price">Unit price</string>
     <string name="quantity_to_buy">Quantity to buy</string>
     <string name="quantity">%d</string>
     <string name="quantity_req">Quantity *</string>
