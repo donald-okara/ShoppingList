@@ -36,6 +36,16 @@ interface ItemDao {
     @Query("SELECT * from items WHERE id = :id")
     fun getItem(id: Int): Flow<Item>
 
+    @Query("SELECT * FROM items WHERE cart = 1")
+    fun getItemsInCart(): Flow<List<Item>>
+
+
+    @Query("SELECT DISTINCT category FROM items ORDER BY category ASC")
+    fun getDistinctCategories(): Flow<List<String>>
+
+    @Query("SELECT * FROM items WHERE cart = 0")
+    fun getItemsNotInCart(): Flow<List<Item>>
+
     // Specify the conflict strategy as IGNORE, when the user tries to add an
     // existing Item into the database Room ignores the conflict.
     @Insert(onConflict = OnConflictStrategy.IGNORE)

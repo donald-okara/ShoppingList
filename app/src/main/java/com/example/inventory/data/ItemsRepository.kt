@@ -32,6 +32,12 @@ interface ItemsRepository {
      */
     fun getItemStream(id: Int): Flow<Item?>
 
+    fun getItemsInCart(): Flow<List<Item>>
+
+    fun getItemsNotInCart(): Flow<List<Item>>
+
+    fun getDistinctCategories(): Flow<List<String>>
+
     /**
      * Insert item in the data source
      */

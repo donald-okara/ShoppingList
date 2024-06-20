@@ -24,24 +24,30 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -72,6 +78,9 @@ fun ItemEntryScreen(
     viewModel: ItemEntryViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val coroutineScope = rememberCoroutineScope()
+    // Collect categories from the ViewModel
+    val categories by viewModel.getCategories().collectAsState(initial = emptyList())
+
     Scaffold(
         topBar = {
             InventoryTopAppBar(
@@ -94,6 +103,7 @@ fun ItemEntryScreen(
                     navigateBack()
                 }
             },
+            categories = categories,
             modifier = Modifier
                 .padding(
                     start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
@@ -107,10 +117,28 @@ fun ItemEntryScreen(
 }
 
 @Composable
+fun EntryBottomSheetContents(
+    categories: List<String>,
+    onCategorySelected: (String) -> Unit
+) {
+    LazyColumn {
+        items(categories) { category ->
+            Text(
+                text = category,
+                modifier = Modifier
+                    .padding(16.dp)
+                    .clickable { onCategorySelected(category) }
+            )
+        }
+    }
+}
+
+@Composable
 fun ItemEntryBody(
     itemUiState: ItemUiState,
     onItemValueChange: (ItemDetails) -> Unit,
     onSaveClick: () -> Unit,
+    categories: List<String>, // Receive categories from ItemEntryScreen
     viewModel: ItemEntryViewModel = viewModel(factory = AppViewModelProvider.Factory),
     modifier: Modifier = Modifier
 ) {
@@ -123,6 +151,7 @@ fun ItemEntryBody(
             itemDetails = itemUiState.itemDetails,
             onValueChange = onItemValueChange,
             modifier = Modifier.fillMaxWidth(),
+            categories = categories
 
         )
         Button(
@@ -136,14 +165,21 @@ fun ItemEntryBody(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemInputForm(
     itemDetails: ItemDetails,
     modifier: Modifier = Modifier,
     onValueChange: (ItemDetails) -> Unit = {},
+    categories: List<String>, // Receive categories from ItemEntryScreen
     enabled: Boolean = true
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var openBottomSheet by rememberSaveable { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    var skipPartiallyExpanded by rememberSaveable { mutableStateOf(false) }
+    val bottomSheetState =
+        rememberModalBottomSheetState(skipPartiallyExpanded = skipPartiallyExpanded)
+
 
     Column(
         modifier = modifier,
@@ -203,10 +239,39 @@ fun ItemInputForm(
                 unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
                 disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
             ),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { focusState ->
+                    if (focusState.isFocused){
+                        openBottomSheet = true
+                    }
+                },
             enabled = enabled,
             singleLine = true
         )
+        // Modal bottom sheet
+        if (openBottomSheet) {
+            ModalBottomSheet(
+                onDismissRequest = {
+                    openBottomSheet = false
+                },
+                sheetState = bottomSheetState
+            ) {
+                // Bottom sheet content
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    EntryBottomSheetContents(
+                        categories = categories,
+                        onCategorySelected = { category ->
+                            onValueChange(itemDetails.copy(category = category))
+                            openBottomSheet = false // Close bottom sheet on category selection
+                        }
+                    )
+                }
+            }
+        }
         if (enabled) {
             Text(
                 text = stringResource(R.string.required_fields),
@@ -224,6 +289,6 @@ private fun ItemEntryScreenPreview() {
             ItemDetails(
                 name = "Item name", price = "10.00", quantity = "5"
             )
-        ), onItemValueChange = {}, onSaveClick = {})
+        ), onItemValueChange = {}, categories = emptyList(), onSaveClick = {})
     }
 }

@@ -23,6 +23,7 @@ import com.example.inventory.data.ItemsRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -55,6 +56,27 @@ class ItemDetailsViewModel(
     /**
      * Reduces the item quantity by one and update the [ItemsRepository]'s data source.
      */
+
+    fun addToCart() {
+        viewModelScope.launch {
+            val item = itemsRepository.getItemStream(itemId).firstOrNull()
+            item?.let {
+                val updatedItem = it.copy(cart = true)
+                itemsRepository.updateItem(updatedItem)
+            }
+        }
+    }
+
+    fun removeFromCart() {
+        viewModelScope.launch {
+            val item = itemsRepository.getItemStream(itemId).firstOrNull()
+            item?.let {
+                val updatedItem = it.copy(cart = true)
+                itemsRepository.updateItem(updatedItem)
+            }
+        }
+    }
+
     fun reduceQuantityByOne() {
         viewModelScope.launch {
             val currentItem = uiState.value.itemDetails.toItem()

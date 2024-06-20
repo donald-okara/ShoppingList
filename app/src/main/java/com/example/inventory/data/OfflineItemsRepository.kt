@@ -24,6 +24,14 @@ class OfflineItemsRepository(private val itemDao: ItemDao) : ItemsRepository {
 
     override fun getItemStream(id: Int): Flow<Item?> = itemDao.getItem(id)
 
+    override fun getItemsInCart(): Flow<List<Item>> = itemDao.getItemsInCart()
+
+    override fun getItemsNotInCart(): Flow<List<Item>> = itemDao.getItemsNotInCart()
+
+    override fun getDistinctCategories(): Flow<List<String>> {
+        return itemDao.getDistinctCategories()
+    }
+
     override suspend fun insertItem(item: Item) = itemDao.insert(item)
 
     override suspend fun deleteItem(item: Item) = itemDao.delete(item)

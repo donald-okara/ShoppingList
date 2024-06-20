@@ -17,7 +17,6 @@
 package com.example.inventory.ui.home
 
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,21 +30,21 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderDelete
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,9 +52,9 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
@@ -87,7 +86,6 @@ import com.example.inventory.ui.AppViewModelProvider
 import com.example.inventory.ui.item.DeleteConfirmationDialog
 import com.example.inventory.ui.navigation.NavigationDestination
 import com.example.inventory.ui.theme.InventoryTheme
-import kotlinx.coroutines.launch
 
 object HomeDestination : NavigationDestination {
     override val route = "home"
@@ -103,25 +101,36 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val totalItemsPrice by viewModel.totalItemsPrice.collectAsState()
-    val homeUiState by viewModel.homeUiState.collectAsState()
+    val totalItemsInCartPrice by viewModel.totalItemsInCartPrice.collectAsState()
+    val itemsInCart by viewModel.itemsInCart.collectAsState()
+    val itemsNotInCart by viewModel.itemsNotInCart.collectAsState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val selectedItems = remember { mutableStateOf(setOf<Int>()) }
+    val selectedCartItems = remember { mutableStateOf(setOf<Int>()) }
 
     // Log the selected items whenever they change
     LaunchedEffect(selectedItems.value) {
         Log.d("HomeScreen", "Selected items: ${selectedItems.value}")
+        Log.d("HomeScreen", "Selected cart items: ${selectedCartItems.value}")
+
     }
     val scope = rememberCoroutineScope()
     val scaffoldState = rememberBottomSheetScaffoldState()
     var deleteConfirmationRequired by rememberSaveable { mutableStateOf(false) }
     var deleteConfirmationForAllRequired by rememberSaveable { mutableStateOf(false) }
 
-
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         sheetPeekHeight = 128.dp,
         sheetContent = {
-            BottomSheetContent(totalItemsPrice = totalItemsPrice)
+            HomeBottomSheetContent(
+                itemsInCart = itemsInCart,
+                totalItemsPrice = totalItemsPrice,
+                totalItemsInCartPrice = totalItemsInCartPrice,
+                selectedItems = selectedCartItems,
+                onItemClick = navigateToItemUpdate,
+
+                )
         },
         modifier = modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection)
@@ -130,13 +139,14 @@ fun HomeScreen(
                     if (selectedItems.value.isNotEmpty()) {
                         selectedItems.value = emptySet()
                     }
+                    if (selectedCartItems.value.isNotEmpty()) {
+                        selectedCartItems.value = emptySet()
+                    }
                     deleteConfirmationForAllRequired = false
                     deleteConfirmationRequired = false
                 },
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
-
-
             ),
         topBar = {
             InventoryTopAppBar(
@@ -152,7 +162,7 @@ fun HomeScreen(
                 .padding(innerPadding)
         ) {
             HomeBody(
-                itemList = homeUiState.itemList,
+                itemList = itemsNotInCart,
                 onItemClick = navigateToItemUpdate,
                 selectedItems = selectedItems,
                 modifier = modifier.fillMaxSize(),
@@ -165,31 +175,32 @@ fun HomeScreen(
                     .align(Alignment.BottomCenter)
                     .padding(bottom = dimensionResource(R.dimen.padding_large))
             ) {
-                //FAB segment
+                // FAB segment
                 if (selectedItems.value.isEmpty()) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         FloatingActionButton(
-                        onClick = {
-                            deleteConfirmationForAllRequired = true
-                        },
-                        shape = MaterialTheme.shapes.medium,
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        contentColor = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(dimensionResource(id = R.dimen.padding_large))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FolderDelete,
-                            contentDescription = "Cear list"
-                        )
-                    }
+                            onClick = {
+                                deleteConfirmationForAllRequired = true
+                            },
+                            shape = MaterialTheme.shapes.medium,
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(dimensionResource(id = R.dimen.padding_large))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FolderDelete,
+                                contentDescription = "Clear list"
+                            )
+                        }
                         if (deleteConfirmationForAllRequired) {
                             DeleteConfirmationDialog(
                                 onDeleteConfirm = {
                                     deleteConfirmationForAllRequired = false
-                                    viewModel.deleteAllItems()                               },
+                                    viewModel.deleteAllItems()
+                                },
                                 onDeleteCancel = { deleteConfirmationForAllRequired = false },
                                 modifier = Modifier.padding(dimensionResource(id = R.dimen.padding_medium))
                             )
@@ -205,7 +216,6 @@ fun HomeScreen(
                             )
                             Text(text = "Add Item")
                         }
-
                     }
                 } else {
                     // Add your action buttons here
@@ -213,7 +223,6 @@ fun HomeScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-
                         FloatingActionButton(
                             onClick = {
                                 deleteConfirmationRequired = true
@@ -233,20 +242,17 @@ fun HomeScreen(
                                 onDeleteConfirm = {
                                     deleteConfirmationRequired = false
                                     viewModel.deleteSelectedItems(selectedItems.value)
-                                    selectedItems.value = emptySet()                                },
+                                    selectedItems.value = emptySet()
+                                },
                                 onDeleteCancel = { deleteConfirmationRequired = false },
                                 modifier = Modifier.padding(dimensionResource(id = R.dimen.padding_medium))
                             )
                         }
 
-
                         ExtendedFloatingActionButton(
                             onClick = {
-                                // Handle other action
-                                selectedItems.value.forEach {
-                                    itemId ->
+                                selectedItems.value.forEach { itemId ->
                                     viewModel.addToCart(itemId)
-
                                 }
                                 selectedItems.value = emptySet()
                             },
@@ -257,9 +263,8 @@ fun HomeScreen(
                                 imageVector = Icons.Default.AddShoppingCart,
                                 contentDescription = "More"
                             )
-                            Text(text = "Add to Cart")
+                            Text(text = stringResource(R.string.add_to_cart))
                         }
-
                     }
                 }
             }
@@ -268,36 +273,165 @@ fun HomeScreen(
 }
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun BottomSheetContent(
-    totalItemsPrice : Double,
+fun HomeBottomSheetContent(
+    itemsInCart: List<Item>,
+    selectedItems: MutableState<Set<Int>>,
+    totalItemsInCartPrice : Double,
+    totalItemsPrice: Double,
+    onItemClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
-
 ) {
-    Log.d("BottomSheet", "Total items price in UI: $totalItemsPrice")
+    val context = LocalContext.current
+    var showCheckoutDialog by rememberSaveable { mutableStateOf(false) }
 
+    // Function to toggle the selection state of an item
+    fun toggleSelection(itemId: Int) {
+        selectedItems.value = if (selectedItems.value.contains(itemId)) {
+            selectedItems.value - itemId
+        } else {
+            selectedItems.value + itemId
+        }
+        // Log the selected items
+        Log.d("BottomSheet", "Selected items: ${selectedItems.value}")
+    }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-       Row{
-           Column {
-               Text(
-                   text = "Total Price: ",
-                   style = MaterialTheme.typography.bodyLarge,
-               )
-               Text(
-                   text = "$totalItemsPrice",
-                   style = MaterialTheme.typography.bodyLarge,
-               )
 
-           }
+        Box(
+            modifier = Modifier
+                .padding(16.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ){
+            Row {
+                Icon(
+                    imageVector = Icons.Filled.ShoppingCart,
+                    contentDescription = "Shopping Cart",
+                    modifier = Modifier.size(48.dp) // Adjust size as needed
+
+                )
+
+                Spacer(Modifier.weight(1f))
+
+                Column {
+                    Text(
+                        text = "Cart: $totalItemsInCartPrice",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Spacer(modifier = Modifier.padding(4.dp))
+                    Text(
+                        text = "Balance : ${totalItemsPrice - totalItemsInCartPrice} ",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
 
 
-       }
+        LazyColumn {
+            items(itemsInCart) { item ->
+                val isSelected = selectedItems.value.contains(item.id)
+                InventoryItem(
+                    item = item,
+                    isSelected = isSelected,
+                    modifier = Modifier
+                        .padding(dimensionResource(id = R.dimen.padding_small))
+                        .combinedClickable(
+                            onClick = {
+                                if (selectedItems.value.isNotEmpty()) {
+                                    toggleSelection(item.id)
+                                } else {
+                                    onItemClick(item.id)
+                                }
+                            },
+                            onLongClick = {
+                                toggleSelection(item.id)
+                            }
+                        )
+                )
+            }
+        }
+
+        if (selectedItems.value.isNotEmpty()) {
+            ExtendedFloatingActionButton(
+                onClick = {
+                    // Perform some action, such as removing selected items from cart
+                    selectedItems.value.forEach { itemId ->
+                        // Remove item from cart
+                        viewModel.removeFromCart(itemId)
+                    }
+                    selectedItems.value = emptySet()
+                },
+                shape = MaterialTheme.shapes.medium,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.error,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(dimensionResource(id = R.dimen.padding_large))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Remove selected items from cart"
+                )
+                Text(text = "Remove Selected")
+            }
+        } else {
+            ExtendedFloatingActionButton(
+                onClick = {
+                    showCheckoutDialog = true
+                },
+                shape = MaterialTheme.shapes.medium,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(dimensionResource(id = R.dimen.padding_large))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ShoppingCart,
+                    contentDescription = "Checkout"
+                )
+                Text(text = "Checkout")
+            }
+        }
+    }
+
+    if (showCheckoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showCheckoutDialog = false },
+            title = { Text("Checkout") },
+            text = { Text("Total Price: $$totalItemsInCartPrice\nDo you want to proceed with checkout?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showCheckoutDialog = false
+                        // Perform checkout action, such as clearing the cart
+                        itemsInCart.forEach { item ->
+                            viewModel.deleteCart()
+                        }
+                    }
+                ) {
+                    Text("Confirm")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCheckoutDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -402,13 +536,6 @@ private fun InventoryList(
                                         },
                                         onLongClick = {
                                             toggleSelection(item.id)
-                                            Toast
-                                                .makeText(
-                                                    context,
-                                                    "Item ${item.name} long pressed",
-                                                    Toast.LENGTH_SHORT
-                                                )
-                                                .show()
                                         }
                                     )
                             )

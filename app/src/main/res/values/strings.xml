@@ -22,7 +22,7 @@
     <string name="grand_total">Grand Total: $%1$.2f</string>
     <string name="delete">Delete</string>
     <string name="delete_question">Are you sure you want to delete?</string>
-    <string name="no_item_description">Oops!\nNo items in the list.\nTap + to add.</string>
+    <string name="no_item_description">No items in the list.\nTap + to add or check the cart.</string>
     <string name="edit_item_title">Edit Item</string>
     <string name="item">Item</string>
     <string name="item_detail_title">Item Details</string>
@@ -40,4 +40,6 @@
     <string name="required_fields">*required fields</string>
     <string name="checkout">Checkout items</string>
     <string name="category">Category</string>
+    <string name="add_to_cart">Add to Cart</string>
+    <string name="remove_from_cart">Remove from cart</string>
 </resources>

@@ -15,6 +15,19 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class HomeViewModel(private val itemsRepository: ItemsRepository) : ViewModel() {
+    val itemsInCart: StateFlow<List<Item>> = itemsRepository.getItemsInCart()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
+            initialValue = listOf()
+        )
+
+    val itemsNotInCart: StateFlow<List<Item>> = itemsRepository.getItemsNotInCart()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
+            initialValue = listOf()
+        )
 
     fun addToCart(itemId: Int) {
         viewModelScope.launch {
@@ -25,6 +38,17 @@ class HomeViewModel(private val itemsRepository: ItemsRepository) : ViewModel() 
             }
         }
     }
+
+    fun removeFromCart(itemId: Int) {
+        viewModelScope.launch {
+            val item = itemsRepository.getItemStream(itemId).firstOrNull()
+            item?.let {
+                val updatedItem = it.copy(cart = false)
+                itemsRepository.updateItem(updatedItem)
+            }
+        }
+    }
+
 
     fun deleteAllItems() {
         viewModelScope.launch {
@@ -39,6 +63,13 @@ class HomeViewModel(private val itemsRepository: ItemsRepository) : ViewModel() 
         }
     }
 
+    fun deleteCart() {
+        viewModelScope.launch {
+            val cartItems = itemsInCart.value
+            itemsRepository.deleteItems(cartItems)
+        }
+    }
+
     val homeUiState: StateFlow<HomeUiState> =
         itemsRepository.getAllItemsStream().map { items ->
             Log.d("HomeViewModel", "Retrieved items: $items")
@@ -49,6 +80,7 @@ class HomeViewModel(private val itemsRepository: ItemsRepository) : ViewModel() 
             started = SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
             initialValue = HomeUiState()
         )
+
 
     val totalItemsPrice: StateFlow<Double> = itemsRepository.getTotalPrice()
         .stateIn(
@@ -63,6 +95,13 @@ class HomeViewModel(private val itemsRepository: ItemsRepository) : ViewModel() 
             }
         }
 
+    val totalItemsInCartPrice: StateFlow<Double> = itemsInCart.map { items ->
+        items.sumOf { it.price * it.quantity }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
+        initialValue = 0.0
+    )
 
 
     companion object {

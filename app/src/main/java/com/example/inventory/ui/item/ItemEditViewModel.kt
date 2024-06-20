@@ -23,6 +23,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.inventory.data.ItemsRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -38,6 +39,10 @@ class ItemEditViewModel(
     /**
      * Holds current item ui state
      */
+    fun getCategories(): Flow<List<String>> {
+        return itemsRepository.getDistinctCategories()
+    }
+
     var itemUiState by mutableStateOf(ItemUiState())
         private set
 
