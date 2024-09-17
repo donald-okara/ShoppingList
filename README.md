@@ -6,7 +6,7 @@ Solution code for Android Basics with Compose.
 Introduction
 ------------
 
-This app is anshopping list app. Demos how to add, update, and delete items from the local database.
+This app is a shopping list app. Demos how to add, update, and delete items from the local database.
 This app demonstrated the Android Jetpack component [Room](https://developer.android.com/training/data-storage/room) database.
 The app also leverages [ViewModel](https://developer.android.com/topic/libraries/architecture/viewmodel),
 [Flow](https://developer.android.com/kotlin/flow),
